@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="he">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>התכוננות למבחן באזרחות</title>
+    <link rel="stylesheet" href="check.js">
+    <style>
+        body {
+            background: url(הורדה4.jpg);
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            text-align: right;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .item {
+            background-color: #f9f9f9;
+            padding: 10px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .plus-button {
+            background-color: green;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 24px;
+            line-height: 40px;
+            text-align: center;
+            cursor: pointer;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1;
+        }
+
+        .overlay-content {
+            background-color: white;
+            width: 80%;
+            max-width: 600px;
+            margin: 100px auto;
+            padding: 20px;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .file-input {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="container"></div>
+    <button class="plus-button" id="plusButton">+</button>
+    <div class="overlay" id="overlay">
+        <div class="overlay-content">
+            <span class="close-button" onclick="closeOverlay()">X</span>
+            <label for="classCode">קוד כיתה:</label>
+            <input type="text" id="classCode" required><br><br>
+            <label for="topic">נושא:</label>
+            <input type="text" id="topic" required><br><br>
+            <label for="content">תוכן:</label><br>
+            <textarea id="content" rows="4" cols="50"></textarea><br><br>
+            <input type="file" class="file-input" id="fileInput"><br><br>
+            <button onclick="addItem()">שלח</button>
+        </div>
+    </div>
+
+    <script>
+        var overlay = document.getElementById('overlay');
+        var plusButton = document.getElementById('plusButton');
+        var container = document.getElementById('container');
+
+        plusButton.addEventListener('click', function () {
+            overlay.style.display = 'block';
+        });
+
+        function closeOverlay() {
+            overlay.style.display = 'none';
+        }
+
+        function addItem() {
+            var classCode = document.getElementById('classCode').value;
+            var topic = document.getElementById('topic').value;
+            var content = document.getElementById('content').value;
+            var file = document.getElementById('fileInput').files[0];
+
+            if (topic.trim() === '') {
+                alert('אנא הכנס נושא');
+                return;
+            }
+
+            var item = {
+                topic: topic,
+                content: content,
+                file: file ? file.name : null
+            };
+
+            var storageKey = 'items-' + classCode;
+
+            // שמירה ב-localStorage
+            var items = localStorage.getItem(storageKey) ? JSON.parse(localStorage.getItem(storageKey)) : [];
+            items.push(item);
+            localStorage.setItem(storageKey, JSON.stringify(items));
+
+            renderItems(storageKey);
+            closeOverlay();
+        }
+
+        function deleteItem(storageKey, index) {
+            var items = JSON.parse(localStorage.getItem(storageKey));
+            items.splice(index, 1);
+            localStorage.setItem(storageKey, JSON.stringify(items));
+            renderItems(storageKey);
+        }
+
+        function renderItems(storageKey) {
+            container.innerHTML = '';
+            var items = JSON.parse(localStorage.getItem(storageKey));
+            if (items) {
+                items.forEach(function (item, index) {
+                    var itemElement = document.createElement('div');
+                    itemElement.classList.add('item');
+                    itemElement.innerHTML = '<h3>' + item.topic + '</h3><p>' + item.content + '</p>';
+                    if (item.file) {
+                        itemElement.innerHTML += '<a href="#" onclick="downloadFile(\'' + storageKey + '\', ' + index + ')">הורד קובץ</a>';
+                    }
+                    itemElement.innerHTML += '<button onclick="deleteItem(\'' + storageKey + '\', ' + index + ')">מחק</button>';
+                    container.appendChild(itemElement);
+                });
+            }
+        }
+
+        function downloadFile(storageKey, index) {
+            var items = JSON.parse(localStorage.getItem(storageKey));
+            var item = items[index];
+            var blob = new Blob([item.content], { type: 'text/plain' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = item.file;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // טעינת הודעות מ-localStorage בזמן טעינת הדף
+        window.addEventListener('load', function () {
+            var classCode = document.getElementById('classCode').value;
+            var storageKey = 'items-' + classCode;
+            renderItems(storageKey);
+        });
+    </script>
+</body>
+
+</html>
